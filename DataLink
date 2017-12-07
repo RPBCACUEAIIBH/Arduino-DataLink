@@ -1,0 +1,307 @@
+#! /bin/bash
+
+################################################################################
+# Arduino Data Link                                                            #
+################################################################################
+#                                                                              #
+# Version 1.0                                                                  #
+# Written by: Tibor Áser Veres                                                 #
+# Source: https://github.com/RPBCACUEAIIBH/Arduino-DataLink                    #
+# License: BSD License 2.0 (see LICENSE.md file)                               #
+#                                                                              #
+################################################################################
+
+# Constants
+Files="/usr/share/DataLink"
+
+if [[ -d $1 ]]
+then
+  RunDir=$1
+  shift
+  else
+  RunDir=$(pwd)
+fi
+
+# Processing options
+SendRequest=false
+Quit=false
+while [[ ! -z $@ ]]
+do
+  case $1 in
+       --help ) cat $Files/Help.md
+                exit
+                ;;
+    --version ) echo ''
+                echo 'Arduino DataLink - Version 1.0'
+                echo ''
+                cat $Files/LICENSE.md
+                echo ''
+                exit
+                ;;
+           -s ) SendRequest=true
+                shift
+                Request=$1
+                shift
+                ;;
+           -e ) Quit=true
+                shift
+                Over=$1
+                shift
+                ;;
+            * ) if [[ -z $Port ]]
+                then
+                  Port=$1
+                  shift
+                else
+                  Speed=$1
+                  shift
+                fi
+                ;;
+  esac
+done
+
+# Root check
+if [[ $(whoami) != "root" ]]
+then
+  echo 'This script needs to run as root! Please use "sudo" in front.'
+  exit
+fi
+
+# Checking and creating log file if necessary.
+DT=$(date -Is)
+Time=${DT:11:8}
+Success=true
+if [[ ! -f $RunDir/Log ]]
+then
+  touch $RunDir/Log
+  chown $SUDO_USER:$SUDO_USER $RunDir/Log
+  echo "$Time N: Starting log..." | tee $RunDir/Log
+  DT=$(date -Is); echo "${DT:11:8} W: Log file was missing!" | tee -a $RunDir/Log
+else
+  echo "$Time N: Starting log..." | tee $RunDir/Log
+fi
+
+# Checking Parts and initialising
+if [[ ! -f $RunDir/Controls ]]
+then
+  DT=$(date -Is); echo "${DT:11:8} W: Controls file missing!" | tee -a $RunDir/Log
+  touch $RunDir/Controls
+  chown $SUDO_USER:$SUDO_USER $RunDir/Controls
+# Read is default, but may not be desired depending on your program to start reading immediately... Change "Read" to "Stop" to put it on stendby by default...(both the condition, and the default value.)
+  echo -n "Read" > $RunDir/Controls # << Here
+else
+  State=$(cat $RunDir/Controls) # Reseting state to read...
+  if [[ $State != "Read" ]] # << here 
+  then
+    echo -n "Read" > $RunDir/Controls # << here
+  fi
+fi
+
+if [[ ! -f $RunDir/Input ]]
+then
+  DT=$(date -Is); echo "${DT:11:8} W: Input file missing!" | tee -a $RunDir/Log
+  touch $RunDir/Input
+  chown $SUDO_USER:$SUDO_USER $RunDir/Input
+fi
+if [[ ! -z $(cat $RunDir/Input) ]]
+then
+  DT=$(date -Is); echo "${DT:11:8} W: Input file not empty... Cleaning!" | tee -a $RunDir/Log
+  echo -n "" > $RunDir/Input
+fi
+
+if [[ ! -f $RunDir/Output ]]
+then
+  DT=$(date -Is); echo "${DT:11:8} W: Output file missing!" | tee -a $RunDir/Log
+  touch $RunDir/Output
+  chown $SUDO_USER:$SUDO_USER $RunDir/Output
+fi
+if [[ ! -z $(cat $RunDir/Output) ]]
+then
+  DT=$(date -Is); echo "${DT:11:8} W: Output file not empty... Cleaning!" | tee -a $RunDir/Log
+  echo -n "" > $RunDir/Output
+fi
+
+# Saving previous port configuration and reconfiguring port
+PPC=$(stty -F $Port -g)
+
+function Configure
+{
+  # Checking and setting port
+  if [[ -z $Port ]]
+  then
+    Port=$(grep "Port:" $RunDir/Config | awk '{ print $2 }')
+  fi
+  if [[ -z $Port ]]
+  then
+    DT=$(date -Is); echo "${DT:11:8} E: Port not specified!" | tee -a $RunDir/Log
+    Success=false
+  else
+    if [[ ! -e $Port ]]
+    then
+      DT=$(date -Is); echo "${DT:11:8} E: Device not found!" | tee -a $RunDir/Log
+      Success=false
+    fi
+  fi
+
+  # Checking baudrate
+  if [[ -z $Speed ]]
+  then
+    Speed=$(grep "BaudRate:" $RunDir/Config | awk '{ print $2 }')
+  fi
+  if [[ ! -z $Speed ]]
+  then
+    case $Speed in
+         300 ) Speed=300
+               ;;
+         600 ) Speed=600
+               ;;
+        1200 ) Speed=1200
+               ;;
+        2400 ) Speed=2400
+               ;;
+        4800 ) Speed=4800
+               ;;
+        9600 ) Speed=9600
+               ;;
+       14400 ) Speed=14400
+               ;;
+       19200 ) Speed=19200
+               ;;
+       28800 ) Speed=28800
+               ;;
+       38400 ) Speed=38400
+               ;;
+       57600 ) Speed=57600
+               ;;
+      115200 ) Speed=115200
+               ;;
+           * ) DT=$(date -Is); echo "${DT:11:8} E: Unkown baud rate!" | tee -a $RunDir/Log
+               Success=false
+               ;;
+    esac
+  else
+    Speed=9600
+  fi
+
+  if [[ ! -z $(grep "E:"  $RunDir/Log) ]]
+  then
+    DT=$(date -Is); echo "${DT:11:8} N: Fatal error happened! Aborting..." | tee -a $RunDir/Log
+    sleep 5
+    exit
+  fi
+
+  # Configuring port
+  stty -F $Port cs8 $Speed min 0 time 0 -parenb -parodd -cmspar -hupcl -cstopb cread clocal -crtscts ignbrk -brkint -ignpar -parmrk inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff -iuclc -ixany -imaxbel -iutf8 -opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0 -isig -icanon -iexten -echo -echoe -echok -echonl noflsh -xcase -tostop -echoprt -echoctl -echoke -flusho -extproc
+
+  # Opening channel (It appears that "cat" command can read and clear the buffer but can not request data from the microcontroller. On the other hand "tail" does not seem to clear the buffer so neither will keep reading data indefinitely alone... They seem to work together just fine if tail is started first and keeps running in the background...
+  tail -f $Port&
+}
+
+# Calling function Configure
+Configure
+
+if [[ $(cat $RunDir/Log) == "$Time N: Starting log..." ]]
+then
+  DT=$(date -Is); echo "${DT:11:8} N: Successful initialization!" | tee -a $RunDir/Log
+else
+  if [[ ! -z $(grep "E:" $RunDir/Log) ]]
+  then
+    DT=$(date -Is); echo "${DT:11:8} N: Fatal error happened! Aborting..." | tee -a $RunDir/Log
+    exit
+  else
+    DT=$(date -Is); echo "${DT:11:8} N: One or more errors ware corrected!" | tee -a $RunDir/Log
+  fi
+fi
+
+# -s option
+if [[ $SendRequest == true ]]
+then
+  if [[ -z $Request ]]
+  then
+    DT=$(date -Is); echo "${DT:11:8} E: Request signal is not specified! Please edit the Output file!" | tee -a $RunDir/Log
+  else
+    DT=$(date -Is); echo "${DT:11:8} N: Requesting..." | tee -a $RunDir/Log
+    echo $Request > $RunDir/Output
+  fi
+fi
+
+# -e option
+if [[ $Quit == true ]]
+then
+  if [[ -z $Over ]]
+  then
+    DT=$(date -Is); echo "${DT:11:8} E: Over signal is not specified! Please edit the Controls file!" | tee -a $RunDir/Log
+  fi
+fi
+
+# Waiting for the arduino to reset
+sleep 7 # my arduino runs at 16MHz it resets in somewhat less then 3s, but I'm not sure if a 8MHz one would reset so soon...
+
+# Main section
+State="Read"
+while [[ $State != "Exit" ]]
+do
+  LastState=$State
+  State=$(awk '{ print $1 }' $RunDir/Controls)
+  if [[ $Quit == true ]] # -e option
+  then
+    if [[ ! -z $(grep "$Over" $RunDir/Input) ]]
+    then
+      State="Exit"
+    fi
+  fi
+  if [[ ! -z $(cat $RunDir/Output) ]]
+  then
+      echo -n $(cat $RunDir/Output) > $Port # Remove the "-n" option for sending new line character...
+      echo -n "" > $RunDir/Output
+  fi
+  if [[ $State == "Read" ]]
+  then
+    Discard=$(cat $Port) #The firts read stuff is junk in the buffer...
+  fi
+  if [[ $State == "Reading" ]]
+  then
+    cat $Port | tee -a $RunDir/Input
+  else
+    sleep 0.25
+  fi
+  case $State in
+           Read ) echo "Reading" > $RunDir/Controls
+                  DT=$(date -Is); echo "${DT:11:8} N: Reading..." >> $RunDir/Log
+                  ;;
+           Stop ) echo "Stopped" > $RunDir/Controls
+                  DT=$(date -Is); echo "${DT:11:8} N: Stopping..." >> $RunDir/Log
+                  ;;
+           Exit ) DT=$(date -Is); echo "${DT:11:8} N: Exiting..." >> $RunDir/Log
+                  ;;
+          Clear ) echo -n "" > $RunDir/Input
+                  State=$LastState
+                  echo -n $State > $RunDir/Controls
+                  ;;
+        Reading ) :
+                  ;;
+    Reconfigure ) echo -n "Stopped" > $RunDir/Controls
+                  kill $(ps -e | grep tail | awk '{ print $1 }')
+                  Port=$(grep "Port:" $RunDir/Config | awk '{ print $2 }')
+                  Speed=$(grep "BaudRate:" $RunDir/Config | awk '{ print $2 }')
+                  Configure
+                  echo -n " Reconfigured" >> $RunDir/Controls
+                  ;;
+        Stopped ) :
+                  ;;
+              * ) DT=$(date -Is); echo "${DT:11:8} W: Unknown state request! Falling back to previous state!" >> $RunDir/Log
+                  State=$LastState
+                  echo -n $State > $RunDir/Controls
+                  ;;
+  esac
+done
+
+# Closing channel
+kill $(ps -e | grep tail | awk '{ print $1 }') #Fix this! It will kill all tail operations including non-related ones!
+
+# Restoring previous port settings... (arduino IDE may have problem uploading or using serial monitor if not restored...)
+stty $PPC -F $Port # It gives me an error like crazy. but it does what it supposed to do...
+
+# Ending log and exiting
+DT=$(date -Is); echo "${DT:11:8} N: Ending log!" >> $RunDir/Log
+echo "Exited" > $RunDir/Controls

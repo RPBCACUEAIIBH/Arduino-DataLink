@@ -1,0 +1,113 @@
+Original stty settings are from the official arduino page: http://playground.arduino.cc/Interfacing/LinuxTTY
+
+problem with it...
+After I created the data link script, it worked, but the next day it suddenly didn't... I couldn't figure out why for a while, then I started the arduino IDE(version 1.0.6) to check if the system monitor works, and it did, so I closed the IDE and tried my script, and suddenly it works again, so I figured that the arduino IDE must have used and configured stty and left some changes that my script should have done in the first place, so I restarted the PC, and took note of the settings with stty [port] -g and -a options for stty initially, after the IDE, and after DataLink... Here are the differences, and solution...
+
+These are the original settings I took from the arduino webpage...
+Original: stty -F /dev/ttyUSB0 cs8 115200 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts
+
+This is the minimal setup that worked for me...
+     New: stty -F /dev/ttyUSB0 cs8 115200 min 0 -hupcl -crtscts ignbrk -brkint inpck -icrnl -ixon -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok noflsh -echoctl -echoke
+
+This is the ultimate setup defining every option just in case some other program also uses stty and messes up...
+Overkill: stty -F /dev/ttyUSB0 cs8 115200 min 0 time 0 -parenb -parodd -cmspar -hupcl -cstopb cread clocal -crtscts ignbrk -brkint -ignpar -parmrk inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff -iuclc -ixany -imaxbel -iutf8 -opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0 -isig -icanon -iexten -echo -echoe -echok -echonl noflsh -xcase -tostop -echoprt -echoctl -echoke -flusho -extproc
+
+Untouched: 500:5:cbd:8a3b:3:1c:7f:15:4:0:1:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+speed 9600 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; discard = ^O;
+min = 1; time = 0;
+-parenb -parodd -cmspar cs8 hupcl -cstopb cread clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff -iuclc -ixany -imaxbel -iutf8
+opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt echoctl echoke -flusho -extproc
+
+After arduino IDE: 10:0:18b2:0:3:1c:7f:15:4:0:0:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+speed 115200 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; discard = ^O;
+min = 0; time = 0;
+-parenb -parodd -cmspar cs8 -hupcl -cstopb cread clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff -iuclc -ixany -imaxbel -iutf8
+-opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+-isig -icanon -iexten -echo -echoe -echok -echonl -noflsh -xcase -tostop -echoprt -echoctl -echoke -flusho -extproc
+
+After mine: 11:0:18b2:80:3:1c:7f:15:4:0:0:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+speed 115200 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; discard = ^O;
+min = 0; time = 0;
+-parenb -parodd -cmspar cs8 -hupcl -cstopb cread clocal -crtscts
+ignbrk -brkint -ignpar -parmrk inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff -iuclc -ixany -imaxbel -iutf8
+-opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+-isig -icanon -iexten -echo -echoe -echok -echonl noflsh -xcase -tostop -echoprt -echoctl -echoke -flusho -extproc
+
+
+Compare
+Fresh  : 500:5:cbd :8a3b:3:1c:7f:15:4:0:1:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+Arduino: 10 :0:18b2:0   :3:1c:7f:15:4:0:0:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+Mine   : 11 :0:18b2:80  :3:1c:7f:15:4:0:0:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+
+Change : ^^^:^:^^^^:^^^^:-:--:--:--:-:-:^:-:--:--:--:-:--:-:--:--:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-
+Change+: ^^^:-:----:^^^^:-:--:--:--:-:-:-:-:--:--:--:-:--:-:--:--:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-:-
+
+Fresh  : speed 9600 baud; rows 0; columns 0; line = 0;
+Arduino: speed 115200 baud; rows 0; columns 0; line = 0;
+Mine   : speed 115200 baud; rows 0; columns 0; line = 0;
+
+Change : ^^^^^^^^^^^^^^^^^;-------;----------;---------;
+Change+: -----------------;-------;----------;---------;
+Exists :       115200
+
+Fresh  : intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; discard = ^O;
+Arduino: intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; discard = ^O;
+Mine   : intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; discard = ^O;
+
+Change : nc
+Change2: nc
+
+
+Fresh  : min = 1; time = 0;
+Arduino: min = 0; time = 0;
+Mine   : min = 0; time = 0;
+
+Change : ^^^^^^^;---------;
+Change2: -------;---------;
+Exists :
+Needed : min 0
+OverK  :          time 0
+
+Fresh  : -parenb -parodd -cmspar cs8  hupcl -cstopb cread clocal -crtscts
+Arduino: -parenb -parodd -cmspar cs8 -hupcl -cstopb cread clocal -crtscts
+Mine   : -parenb -parodd -cmspar cs8 -hupcl -cstopb cread clocal -crtscts
+
+Change : ------- ------- ------- --- ^^^^^^ ------- ----- ------ --------
+Change2: ------- ------- ------- --- ------ ------- ----- ------ --------
+Exists :                         cs8                             -crtscts
+Needed :                             -hupcl
+OverK  : -parenb -parodd -cmspar            -cstopb cread clocal
+
+Fresh  : -ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr  icrnl  ixon -ixoff -iuclc -ixany -imaxbel -iutf8
+Arduino: -ignbrk -brkint -ignpar -parmrk  inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff -iuclc -ixany -imaxbel -iutf8
+Mine   :  ignbrk -brkint -ignpar -parmrk  inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff -iuclc -ixany -imaxbel -iutf8
+
+Change : ------- ------- ------- ------- ^^^^^^ ------- ------ ------ ^^^^^^ ^^^^^ ------ ------ ------ -------- ------
+Change2: ^^^^^^^ ------- ------- ------- ------ ------ ------- ------ ------ ----- ------ ------ ------ -------- ------
+Exists :  ignbrk -brkint                                              -icrnl -ixon                      -imaxbel
+Needed :                                  inpck
+OverK  :                 -ignpar -parmrk        -istrip -inlcr -igncr              -ixoff -iuclc -ixany          -iutf8
+
+Fresh  :  opost -olcuc -ocrnl  onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+Arduino: -opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+Mine   : -opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+
+Change : ^^^^^^ ------ ------ ^^^^^^ ------ ------- ------ ------ --- --- ---- --- --- ---
+Change2: ------ ------ ------ ------ ------ ------- ------ ------ --- --- ---- --- --- ---
+Exists : -opost               -onlcr
+OverK  :        -olcuc -ocrnl        -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+
+Fresh  :  isig  icanon  iexten  echo  echoe  echok -echonl -noflsh -xcase -tostop -echoprt  echoctl  echoke -flusho -extproc
+Arduino: -isig -icanon -iexten -echo -echoe -echok -echonl -noflsh -xcase -tostop -echoprt -echoctl -echoke -flusho -extproc
+Mine   : -isig -icanon -iexten -echo -echoe -echok -echonl  noflsh -xcase -tostop -echoprt -echoctl -echoke -flusho -extproc
+
+Change : ^^^^^ ^^^^^^^ ^^^^^^^ ^^^^^ ^^^^^^ ^^^^^^ ------- ------- ------ ------- -------- ^^^^^^^^ ^^^^^^^ ------- --------
+Change2: ----- ------- ------- ----- ------ ------ ------- ^^^^^^^ ------ ------- -------- -------- ------- ------- --------
+Exists : -isig -icanon -iexten -echo -echoe -echok          noflsh                         -echoctl -echoke
+OverK  :                                           -echonl         -xcase -tostop -echoprt                  -flusho -extproc
