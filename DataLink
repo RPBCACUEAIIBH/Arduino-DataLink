@@ -175,8 +175,8 @@ function Configure
                ;;
      2000000 ) Speed=2000000
                ;;
-           * ) DT=$(date -Is); echo "${DT:11:8} E: Unkown baud rate!" | tee -a $RunDir/Log
-               Success=false
+           * ) DT=$(date -Is); echo "${DT:11:8} W: Unkown baud rate! Falling back to 9600..." | tee -a $RunDir/Log
+               Speed=9600
                ;;
     esac
   else

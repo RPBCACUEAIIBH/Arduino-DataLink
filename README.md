@@ -48,3 +48,6 @@ What's new:
 Version 1.1
   - Added support for higher baud rates (500kbps, 1mbps and 2mbps was added however 230400 and 250k didn't work...)
   - Tested every baud rate, and removed the ones that don't work.(Tested on PC not sure if the higher then 115200 works on raspberry pi.) (Baud rate 300 kinda works, but it's fleaky... The arduino seems to send data to the PC just fine, but can't always recognize what's sent by the PC. Very short message maybe... The way to change back baud rate on the fly after it's been set to 300 is by setting an illegal one, so the arduino defaults to 9600.)
+  - Fixed a BaudRate bug(DataLink didn't fall back to 9600 if unknown baudrate was set...)
+  - Added auro-reconfigure feature for baud rate in the dev tools. Now it shoud change and reload config with ChangeBR command sent to the Arduino.
+  - Interactive terminals display proper help for dev tools.

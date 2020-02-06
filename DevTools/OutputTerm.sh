@@ -1,9 +1,11 @@
 #! /bin/bash
 
 Var=""
-while [[ $Var != "Done" ]]
+while [[ $Var != "Exited" ]]
 do
   clear
-  echo -n "$2 content: "
-  cat $1/$2
+  echo -n "DataLink status (read only terminal): "
+  Var="$(cat $1/$2)"
+  echo "$Var"
 done
+sleep 3

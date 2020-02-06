@@ -16,7 +16,7 @@ Options:
 
 Examples:
   sudo DataLink /dev/ttyUSB0 -s SendIt -e Over
-Where the work dir and baud rate are default, port is /drv/ttyUSB0, request
+Where the work dir and baud rate are default, port is /dev/ttyUSB0, request
 signal is "SendIt" over signal is "Over"
 
 - The port and baudrate must either be passed to the scrip as a parameter, or
