@@ -1,7 +1,7 @@
 /*
 This is an example sketch for testing the DataLink, outside the arduino IDE.
 
-Version 1.0
+Version 1.1
 Written by: Tibor Áser Veres
 Source: https://github.com/RPBCACUEAIIBH/Arduino-DataLink
 License: BSD License 2.0 (see LICENSE.md file)
@@ -25,7 +25,7 @@ int i = 0;
 boolean Send = false;
 boolean Button[2] = {HIGH, HIGH};
 boolean NewString = false;
-unsigned int StringMaxLength = 20; // Argument should be numeric unsigned integer
+unsigned int StringMaxLength = 25; // Argument should be numeric unsigned integer
 
 void setup()
 {
@@ -183,17 +183,17 @@ unsigned long CheckBR(unsigned long Number)
     break;
     case 9600: delayMicroseconds (1);
     break;
-    case 14400: delayMicroseconds (1);
-    break;
     case 19200: delayMicroseconds (1);
-    break;
-    case 28800: delayMicroseconds (1);
-    break;
-    case 38400: delayMicroseconds (1);
     break;
     case 57600: delayMicroseconds (1);
     break;
     case 115200: delayMicroseconds (1);
+    break;
+    case 500000: delayMicroseconds (1);
+    break;
+    case 1000000: delayMicroseconds (1);
+    break;
+    case 2000000: delayMicroseconds (1);
     break;
     default: Number = 9600;
     break;
@@ -237,7 +237,7 @@ void loop()
     boolean ChangeBR = CompareString (ChBR, Value);
     if (ChangeBR == true)
     {
-      BaudRate = CheckBR (GetArgument (Value, 6, 9600));
+      BaudRate = CheckBR (GetArgument (Value, 7, 9600));
       Serial.print ("BaudRate set to: ");
       Serial.println (BaudRate);
       Serial.flush ();

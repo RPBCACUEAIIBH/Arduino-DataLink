@@ -163,17 +163,17 @@ function Configure
                ;;
         9600 ) Speed=9600
                ;;
-       14400 ) Speed=14400
-               ;;
        19200 ) Speed=19200
-               ;;
-       28800 ) Speed=28800
-               ;;
-       38400 ) Speed=38400
                ;;
        57600 ) Speed=57600
                ;;
       115200 ) Speed=115200
+               ;;
+      500000 ) Speed=500000
+               ;;
+     1000000 ) Speed=1000000
+               ;;
+     2000000 ) Speed=2000000
                ;;
            * ) DT=$(date -Is); echo "${DT:11:8} E: Unkown baud rate!" | tee -a $RunDir/Log
                Success=false
